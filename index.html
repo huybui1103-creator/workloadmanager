@@ -30,7 +30,7 @@
     body.light .header-left .lbl { color: #AAA; }
     .header-left h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
     .header-right { display: flex; gap: 8px; align-items: center; }
-    button { font-family: inherit; cursor: pointer; border: none; background: transparent; }
+    button { font-family: inherit; cursor: pointer; border: none; background: transparent; touch-action: manipulation; -webkit-touch-callout: none; }
     .btn { border-radius: 6px; padding: 7px 13px; font-size: 12px; font-weight: 600; border: 1px solid #272727; color: #F0F0F0; background: transparent; }
     body.light .btn { border-color: #DDD; color: #111; }
     .btn-primary { background: #F0F0F0; color: #0E0E0E; border-color: #F0F0F0; }
@@ -101,7 +101,7 @@
 
     /* Day selector */
     .day-row { display: flex; gap: 5px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 2px; }
-    .day-btn { min-width: 50px; padding: 10px 4px; flex: 1; background: #161616; border: 1px solid #272727; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 5px; transition: all 0.15s; }
+    .day-btn { min-width: 50px; padding: 10px 4px; flex: 1; background: #161616; border: 1px solid #272727; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 5px; transition: all 0.15s; touch-action: manipulation; }
     body.light .day-btn { background: #fff; border-color: #DDD; }
     .day-btn.active { background: #F0F0F0; border-color: #F0F0F0; }
     body.light .day-btn.active { background: #111; border-color: #111; }
@@ -133,7 +133,7 @@
     body.light .task-row { background: #fff; border-color: #E8E8E4; }
     .task-row.done { opacity: 0.45; }
     .task-row.overdue { border-color: #E5393530; }
-    .check { width: 16px; height: 16px; min-width: 16px; min-height: 16px; margin-top: 2px; border: 2px solid #272727; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; box-sizing: content-box; }
+    .check { width: 16px; height: 16px; min-width: 16px; min-height: 16px; margin-top: 2px; border: 2px solid #272727; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; box-sizing: content-box; touch-action: manipulation; }
     body.light .check { border-color: #DDD; }
     .check.checked { background: var(--pc); border-color: var(--pc); }
     .check.checked::after { content: '✓'; font-size: 9px; color: #fff; font-weight: 900; }
@@ -160,7 +160,7 @@
     .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; margin-bottom: 16px; }
     .cal-dname { font-size: 9px; color: #444; text-align: center; padding: 4px 0; letter-spacing: 0.06em; }
     body.light .cal-dname { color: #AAA; }
-    .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: 1px solid transparent; position: relative; gap: 2px; }
+    .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: 1px solid transparent; position: relative; gap: 2px; touch-action: manipulation; }
     .cal-day:hover { border-color: #272727; }
     body.light .cal-day:hover { border-color: #DDD; }
     .cal-day.empty { cursor: default; }
@@ -186,6 +186,9 @@
     body.light .backlog-task { background: #fff; border-color: #E8E8E4; }
     .backlog-title { flex: 1; font-size: 13px; font-weight: 500; }
     .btn-assign { font-size: 11px; color: #F57C00; border: 1px solid #F57C0040; border-radius: 6px; padding: 4px 10px; background: #F57C0012; }
+
+    /* Settings */
+    body.light #settings-content { color: #111; }
 
     /* AI */
     .ai-loading { text-align: center; padding: 64px 0; }
@@ -304,11 +307,11 @@
         <option>Admin</option><option>Order</option><option>Other</option>
       </select>
       <select id="f-day">
-        <option value="-1">📦 Backlog</option>
         <option value="0">Monday</option><option value="1">Tuesday</option>
         <option value="2">Wednesday</option><option value="3">Thursday</option>
         <option value="4">Friday</option><option value="5">Saturday</option>
         <option value="6">Sunday</option>
+        <option value="-1">📦 Backlog</option>
       </select>
       <input id="f-deadline" type="date" style="grid-column:1/-1" />
     </div>
@@ -322,6 +325,7 @@
     <button class="tab-btn"        id="tab-backlog" onclick="switchTab('backlog')">📦 Backlog</button>
     <button class="tab-btn"        id="tab-list"    onclick="switchTab('list')">☰ List</button>
     <button class="tab-btn"        id="tab-ai"      onclick="switchTab('ai')">✦ AI</button>
+    <button class="tab-btn"        id="tab-settings" onclick="switchTab('settings')">⚙ Settings</button>
   </div>
 
   <!-- Week -->
@@ -353,6 +357,11 @@
     <div id="clear-done-wrap"></div>
     <div class="filter-row" id="filter-row"></div>
     <div id="list-tasks"></div>
+  </div>
+
+  <!-- Settings -->
+  <div class="tab-content" id="content-settings">
+    <div id="settings-content"></div>
   </div>
 
   <!-- AI -->
@@ -399,6 +408,20 @@ var TODAY_IDX = (function(){ var d = TODAY.getDay(); return d===0?6:d-1; })();
 var dark = true;
 var tasks = [];
 var filterDay = TODAY_IDX;
+var customCategories = [];
+
+function loadCategories() {
+  try { customCategories = JSON.parse(localStorage.getItem('wl-cats')) || ['Design','Client','Strategy','Admin','Order','Other']; }
+  catch(e) { customCategories = ['Design','Client','Strategy','Admin','Order','Other']; }
+}
+function saveCategories() { localStorage.setItem('wl-cats', JSON.stringify(customCategories)); }
+function renderCategorySelect(selectId) {
+  var sel = document.getElementById(selectId);
+  if (!sel) return;
+  var cur = sel.value;
+  sel.innerHTML = customCategories.map(function(c){ return '<option value="'+escHtml(c)+'">'+escHtml(c)+'</option>'; }).join('');
+  if (cur && customCategories.indexOf(cur) >= 0) sel.value = cur;
+}
 var filterPri = 'all';
 var showForm = false;
 var notifStatus = 'default';
@@ -454,6 +477,8 @@ function updateUndoUI() {
   if (!dark) document.body.classList.add('light');
   updateToggle();
   try { tasks = JSON.parse(localStorage.getItem('wl-tasks')) || getSample(); } catch(e) { tasks = getSample(); }
+  loadCategories();
+  var savedCap = parseInt(localStorage.getItem('wl-capacity')||'40'); if(savedCap>0) CAPACITY=savedCap;
   if (!('Notification' in window)) { notifStatus = 'unsupported'; }
   else if (localStorage.getItem('wl-notif-dismissed')) { notifStatus = 'dismissed'; }
   else { notifStatus = Notification.permission; }
@@ -561,20 +586,21 @@ function addTask() {
   document.getElementById('f-hours').value='';
   document.getElementById('f-deadline').value='';
   document.getElementById('f-priority').value='med';
-  document.getElementById('f-day').value='-1';
+  document.getElementById('f-day').value=String(TODAY_IDX);
   toggleForm(); checkNotifs(); renderAll();
 }
 
 // Tab
 function switchTab(tab) {
   currentTab=tab;
-  ['week','month','backlog','list','ai'].forEach(function(t){
+  ['week','month','backlog','list','ai','settings'].forEach(function(t){
     document.getElementById('tab-'+t).className='tab-btn'+(t===tab?' active':'');
     document.getElementById('content-'+t).className='tab-content'+(t===tab?' active':'');
   });
   if(tab==='month') renderMonth();
   if(tab==='backlog') renderBacklog();
   if(tab==='ai') runAI();
+  if(tab==='settings') renderSettings();
 }
 
 // Deadline label
@@ -782,7 +808,72 @@ function renderList() {
 function setFilter(p){filterPri=p;renderList();}
 
 // Render all
-function renderAll() { renderCap(); renderWeek(); renderList(); renderBacklog(); if(currentTab==='month')renderMonth(); }
+function renderAll() {
+  renderCategorySelect('f-category');
+  renderCap(); renderWeek(); renderList(); renderBacklog();
+  if(currentTab==='month')renderMonth();
+  if(currentTab==='settings')renderSettings();
+}
+
+// Settings
+function renderSettings() {
+  var el = document.getElementById('settings-content');
+  if (!el) return;
+  var border = dark ? '#272727' : '#DDD';
+  var surface = dark ? '#161616' : '#fff';
+  var inputBg = dark ? '#1A1A1A' : '#F0EFE9';
+  var inputColor = dark ? '#F0F0F0' : '#111';
+  var textMuted = dark ? '#888' : '#666';
+
+  var catsHTML = customCategories.map(function(c, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:'+inputBg+';border:1px solid '+border+';border-radius:8px;margin-bottom:6px">' +
+      '<span style="flex:1;font-size:13px">'+escHtml(c)+'</span>' +
+      '<button onclick="deleteCategory('+i+')" style="font-size:12px;color:#E53935;border:1px solid #E5393530;border-radius:5px;padding:3px 8px;background:#E5393510">✕</button>' +
+    '</div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div style="font-size:9px;color:'+textMuted+';letter-spacing:0.1em;margin-bottom:12px">CATEGORY</div>' +
+    catsHTML +
+    '<div style="display:flex;gap:8px;margin-top:10px">' +
+      '<input id="new-cat-input" placeholder="Tên category mới..." style="flex:1;background:'+inputBg+';border:1px solid '+border+';border-radius:8px;padding:9px 12px;color:'+inputColor+';font-size:13px;font-family:inherit;outline:none" />' +
+      '<button onclick="addCategory()" style="background:#F57C00;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;font-family:inherit">+ Add</button>' +
+    '</div>' +
+    '<div style="margin-top:24px;font-size:9px;color:'+textMuted+';letter-spacing:0.1em;margin-bottom:12px">CAPACITY (giờ/tuần)</div>' +
+    '<div style="display:flex;gap:8px;align-items:center">' +
+      '<input id="cap-input" type="number" value="'+CAPACITY+'" style="width:80px;background:'+inputBg+';border:1px solid '+border+';border-radius:8px;padding:9px 12px;color:'+inputColor+';font-size:13px;font-family:inherit;outline:none" />' +
+      '<button onclick="saveCapacity()" style="background:'+surface+';color:'+(dark?'#F0F0F0':'#111')+';border:1px solid '+border+';border-radius:8px;padding:9px 14px;font-size:12px;font-family:inherit">Lưu</button>' +
+    '</div>';
+}
+
+function addCategory() {
+  var input = document.getElementById('new-cat-input');
+  var val = input ? input.value.trim() : '';
+  if (!val || customCategories.indexOf(val) >= 0) return;
+  customCategories.push(val);
+  saveCategories();
+  input.value = '';
+  renderSettings();
+  renderCategorySelect('f-category');
+}
+
+function deleteCategory(idx) {
+  if (customCategories.length <= 1) return;
+  customCategories.splice(idx, 1);
+  saveCategories();
+  renderSettings();
+  renderCategorySelect('f-category');
+}
+
+function saveCapacity() {
+  var input = document.getElementById('cap-input');
+  var val = parseInt(input ? input.value : '40');
+  if (!val || val < 1) return;
+  CAPACITY = val;
+  localStorage.setItem('wl-capacity', String(val));
+  renderCap();
+  renderSettings();
+}
 
 // Export
 function exportCSV() {
@@ -839,6 +930,9 @@ function runAI() {
     el.innerHTML=h;
   }).catch(function(){el.innerHTML='<div class="ai-error">Loi ket noi AI.</div><button class="btn-air" onclick="runAI()" style="margin-top:12px">↻ Thu lai</button>';});
 }
+
+// iOS Safari fix: make sure touch events work on all interactive elements
+document.addEventListener('touchstart', function(){}, {passive: true});
 
 if('serviceWorker'in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}
 setTimeout(checkNotifs,2000);
