@@ -1,0 +1,14 @@
+{
+  "short_name": "My Tasks",
+  "name": "Workload Manager",
+  "description": "Personal workload and task priority manager",
+  "icons": [
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any maskable" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any maskable" }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0E0E0E",
+  "background_color": "#0E0E0E",
+  "orientation": "portrait"
+}

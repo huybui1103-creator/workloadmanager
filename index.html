@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="My Tasks" />
+  <meta name="theme-color" content="#0E0E0E" />
+  <meta name="description" content="Personal workload manager" />
+  <link rel="manifest" href="manifest.json" />
+  <title>My Tasks</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { height: 100%; }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      min-height: 100%;
+      background: #0E0E0E;
+      color: #F0F0F0;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      -webkit-font-smoothing: antialiased;
+    }
+    body.light { background: #F5F4F0; color: #111; }
+
+    #app { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+
+    /* Header */
+    .header { padding: 20px 20px 0; display: flex; justify-content: space-between; align-items: center; }
+    .header-left .label { font-size: 9px; letter-spacing: 0.14em; color: #444; margin-bottom: 3px; }
+    body.light .header-left .label { color: #AAA; }
+    .header-left h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
+    .header-right { display: flex; gap: 8px; align-items: center; }
+
+    /* Buttons */
+    button { font-family: inherit; cursor: pointer; border: none; background: transparent; }
+    .btn { border-radius: 6px; padding: 7px 13px; font-size: 12px; font-weight: 600; border: 1px solid #272727; color: #F0F0F0; background: transparent; }
+    body.light .btn { border-color: #DDD; color: #111; }
+    .btn-primary { background: #F0F0F0; color: #0E0E0E; border-color: #F0F0F0; }
+    body.light .btn-primary { background: #111; color: #fff; border-color: #111; }
+    .btn-icon { border: 1px solid #272727; border-radius: 6px; padding: 7px 10px; font-size: 15px; }
+    body.light .btn-icon { border-color: #DDD; }
+    .btn-csv { border: 1px solid #272727; border-radius: 6px; padding: 7px 10px; font-size: 11px; color: #888; }
+    body.light .btn-csv { border-color: #DDD; color: #666; }
+
+    /* Toggle */
+    .toggle { width: 50px; height: 27px; border-radius: 14px; border: 1px solid #272727; background: #272727; display: flex; align-items: center; padding: 0 3px; }
+    body.light .toggle { border-color: #E2E1DD; background: #E2E1DD; }
+    .toggle-knob { width: 21px; height: 21px; border-radius: 50%; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: transform 0.25s; transform: translateX(23px); }
+    body.light .toggle-knob { background: #111; transform: translateX(0); }
+
+    /* Notification banner */
+    #notif-banner { margin: 10px 16px; padding: 12px 14px; border-radius: 10px; background: #F57C0012; border: 1px solid #F57C0030; display: flex; gap: 10px; align-items: flex-start; }
+    #notif-banner.hidden { display: none; }
+    #notif-banner .icon { font-size: 18px; line-height: 1; }
+    #notif-banner .title { font-size: 12px; font-weight: 600; color: #F57C00; margin-bottom: 3px; }
+    #notif-banner .desc { font-size: 11px; color: #888; line-height: 1.45; }
+    body.light #notif-banner .desc { color: #666; }
+    #notif-banner .actions { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-notif-on { background: #F57C00; color: #fff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 11px; font-weight: 700; }
+    .btn-notif-later { background: transparent; color: #888; border: 1px solid #272727; border-radius: 6px; padding: 6px 12px; font-size: 11px; }
+    body.light .btn-notif-later { border-color: #DDD; }
+
+    /* Capacity bar */
+    #cap-bar { padding: 16px 20px; background: #161616; border-bottom: 1px solid #272727; margin-top: 12px; }
+    body.light #cap-bar { background: #fff; border-color: #DDD; }
+    .cap-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
+    .cap-label { font-size: 9px; letter-spacing: 0.14em; color: #444; margin-bottom: 3px; }
+    body.light .cap-label { color: #AAA; }
+    .cap-used { font-size: 28px; font-weight: 700; letter-spacing: -0.03em; }
+    .cap-total { font-size: 13px; color: #444; }
+    body.light .cap-total { color: #AAA; }
+    .cap-avail-label { font-size: 9px; letter-spacing: 0.14em; color: #444; margin-bottom: 3px; text-align: right; }
+    body.light .cap-avail-label { color: #AAA; }
+    .cap-avail { font-size: 22px; font-weight: 700; text-align: right; }
+    .cap-track { height: 4px; background: #1E1E1E; border-radius: 2px; overflow: hidden; }
+    body.light .cap-track { background: #E2E1DD; }
+    .cap-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+    .cap-msg { margin-top: 7px; font-size: 11px; }
+
+    /* Add form */
+    #add-form { margin: 12px 16px; padding: 16px; background: #161616; border-radius: 10px; border: 1px solid #272727; display: none; }
+    body.light #add-form { background: #fff; border-color: #DDD; }
+    #add-form.show { display: block; }
+    .form-label { font-size: 9px; letter-spacing: 0.12em; color: #444; margin-bottom: 12px; }
+    body.light .form-label { color: #AAA; }
+    .form-input { width: 100%; background: #1A1A1A; border: 1px solid #272727; border-radius: 6px; padding: 9px 11px; color: #F0F0F0; font-size: 13px; font-family: inherit; outline: none; margin-bottom: 8px; }
+    body.light .form-input { background: #F0EFE9; border-color: #DDD; color: #111; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 8px; }
+    .form-grid select, .form-grid input { width: 100%; background: #1A1A1A; border: 1px solid #272727; border-radius: 6px; padding: 9px 11px; color: #F0F0F0; font-size: 13px; font-family: inherit; outline: none; }
+    body.light .form-grid select, body.light .form-grid input { background: #F0EFE9; border-color: #DDD; color: #111; }
+    .form-date { grid-column: 1 / -1; }
+    .btn-add-submit { width: 100%; background: #F0F0F0; color: #0E0E0E; border: none; border-radius: 6px; padding: 10px; font-size: 13px; font-weight: 700; }
+    body.light .btn-add-submit { background: #111; color: #fff; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 2px; padding: 14px 16px 0; border-bottom: 1px solid #272727; margin-top: 4px; }
+    body.light .tabs { border-color: #DDD; }
+    .tab-btn { padding: 8px 12px; font-size: 12px; font-weight: 400; color: #444; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+    body.light .tab-btn { color: #AAA; }
+    .tab-btn.active { font-weight: 600; color: #F0F0F0; border-bottom-color: #F0F0F0; }
+    body.light .tab-btn.active { color: #111; border-bottom-color: #111; }
+
+    /* Tab content */
+    .tab-content { display: none; padding: 16px; }
+    .tab-content.active { display: block; }
+
+    /* Day selector */
+    .day-row { display: flex; gap: 5px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 2px; }
+    .day-btn { min-width: 50px; padding: 10px 4px; flex: 1; background: #161616; border: 1px solid #272727; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 5px; transition: all 0.15s; }
+    body.light .day-btn { background: #fff; border-color: #DDD; }
+    .day-btn.active { background: #F0F0F0; border-color: #F0F0F0; }
+    body.light .day-btn.active { background: #111; border-color: #111; }
+    .day-btn.today:not(.active) { border-color: #888; }
+    .day-name { font-size: 9px; letter-spacing: 0.08em; color: #444; }
+    body.light .day-name { color: #AAA; }
+    .day-btn.active .day-name { color: #0E0E0E; }
+    body.light .day-btn.active .day-name { color: #fff; }
+    .day-btn.today:not(.active) .day-name { color: #888; }
+    .day-hours { font-size: 15px; font-weight: 700; }
+    .day-dot { width: 4px; height: 4px; border-radius: 50%; background: #2E7D32; }
+
+    /* Filter pills */
+    .filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+    .filter-btn { border-radius: 20px; padding: 4px 13px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; border: 1px solid #1E1E1E; color: #444; background: transparent; }
+    body.light .filter-btn { border-color: #E8E8E4; color: #AAA; }
+    .filter-btn.active-all { background: #1C1C1C; border-color: #272727; color: #F0F0F0; }
+    body.light .filter-btn.active-all { background: #EEEDE9; border-color: #DDD; color: #111; }
+    .filter-btn.active-high { background: #E5393512; border-color: #E5393540; color: #E53935; }
+    .filter-btn.active-med  { background: #F57C0012; border-color: #F57C0040; color: #F57C00; }
+    .filter-btn.active-low  { background: #2E7D3212; border-color: #2E7D3240; color: #2E7D32; }
+
+    /* Day info */
+    .day-info { font-size: 9px; color: #444; letter-spacing: 0.1em; margin-bottom: 10px; }
+    body.light .day-info { color: #AAA; }
+
+    /* Task list */
+    .task-list { }
+    .task-empty { text-align: center; padding: 48px; color: #444; font-size: 12px; }
+    body.light .task-empty { color: #AAA; }
+
+    /* Task row */
+    .task-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; margin-bottom: 5px; background: #161616; border-radius: 10px; border: 1px solid #1E1E1E; transition: opacity 0.15s; }
+    body.light .task-row { background: #fff; border-color: #E8E8E4; }
+    .task-row.done { opacity: 0.45; }
+    .task-row.overdue { border-color: #E5393530; }
+    .check { width: 16px; height: 16px; min-width: 16px; margin-top: 2px; border: 2px solid #272727; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+    body.light .check { border-color: #DDD; }
+    .check.checked { background: var(--pc); border-color: var(--pc); }
+    .check.checked::after { content: '✓'; font-size: 9px; color: #fff; font-weight: 900; }
+    .task-body { flex: 1; min-width: 0; }
+    .task-title { font-size: 13px; font-weight: 500; margin-bottom: 5px; line-height: 1.35; }
+    .task-row.done .task-title { text-decoration: line-through; color: #444; }
+    body.light .task-row.done .task-title { color: #AAA; }
+    .task-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .badge { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; padding: 2px 7px; border-radius: 3px; }
+    .meta-tag { font-size: 10px; color: #888; }
+    body.light .meta-tag { color: #666; }
+    .meta-dim { font-size: 10px; color: #444; }
+    body.light .meta-dim { color: #AAA; }
+    .dl-tag { font-size: 10px; font-weight: 600; }
+    .task-del { color: #444; font-size: 13px; padding: 2px 4px; flex-shrink: 0; }
+    body.light .task-del { color: #AAA; }
+
+    /* AI view */
+    .ai-loading { text-align: center; padding: 64px 0; }
+    .ai-loading .star { font-size: 26px; opacity: 0.3; margin-bottom: 14px; }
+    .ai-loading .msg { font-size: 11px; letter-spacing: 0.1em; color: #444; }
+    body.light .ai-loading .msg { color: #AAA; }
+    .ai-card { padding: 18px; background: #161616; border-radius: 10px; border: 1px solid #272727; margin-bottom: 12px; }
+    body.light .ai-card { background: #fff; border-color: #DDD; }
+    .ai-section-label { font-size: 9px; letter-spacing: 0.1em; margin-bottom: 10px; }
+    .ai-top-label { font-size: 9px; color: #F57C00; letter-spacing: 0.12em; margin-bottom: 8px; }
+    .ai-top-title { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 6px; }
+    .ai-top-reason { font-size: 13px; color: #888; line-height: 1.55; }
+    body.light .ai-top-reason { color: #666; }
+    .ai-item { display: flex; gap: 12px; padding: 12px 14px; margin-bottom: 6px; background: #161616; border-radius: 10px; border: 1px solid #1E1E1E; }
+    body.light .ai-item { background: #fff; border-color: #E8E8E4; }
+    .ai-item-rank { font-size: 20px; font-weight: 700; color: #272727; min-width: 24px; line-height: 1; }
+    body.light .ai-item-rank { color: #DDD; }
+    .ai-item-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+    .ai-item-reason { font-size: 11px; color: #888; line-height: 1.45; }
+    body.light .ai-item-reason { color: #666; }
+    .ai-item-urgency { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; padding-top: 3px; flex-shrink: 0; }
+    .ai-advice { margin-top: 8px; padding: 14px 16px; background: #161616; border-radius: 10px; border: 1px solid #1E1E1E; }
+    body.light .ai-advice { background: #fff; border-color: #E8E8E4; }
+    .ai-advice-label { font-size: 9px; letter-spacing: 0.1em; margin-bottom: 6px; }
+    .ai-advice-text { font-size: 13px; color: #888; line-height: 1.55; }
+    body.light .ai-advice-text { color: #666; }
+    .btn-ai-refresh { margin-top: 14px; width: 100%; background: transparent; border: 1px solid #272727; border-radius: 6px; padding: 9px; font-size: 11px; color: #444; letter-spacing: 0.06em; }
+    body.light .btn-ai-refresh { border-color: #DDD; color: #AAA; }
+    .ai-error { padding: 18px; background: #E5393510; border-radius: 10px; border: 1px solid #E5393530; color: #E53935; font-size: 13px; }
+    .safe-bottom { height: env(safe-area-inset-bottom, 16px); }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="label">WORKLOAD</div>
+      <h1>My Tasks</h1>
+    </div>
+    <div class="header-right">
+      <button class="btn-icon" id="btn-notif" title="Bật notification" onclick="handleNotif()">🔕</button>
+      <button class="toggle" onclick="toggleDark()"><div class="toggle-knob" id="knob">☀</div></button>
+      <button class="btn-csv" onclick="exportCSV()">↓ CSV</button>
+      <button class="btn" id="btn-add" onclick="toggleForm()">+ Add</button>
+    </div>
+  </div>
+
+  <!-- Notification banner -->
+  <div id="notif-banner">
+    <div class="icon">🔔</div>
+    <div>
+      <div class="title">Bật thông báo để nhận nhắc nhở</div>
+      <div class="desc">Nhận cảnh báo deadline &amp; workload tràn ngay trên điện thoại.</div>
+      <div class="actions">
+        <button class="btn-notif-on" onclick="handleNotif()">Bật ngay</button>
+        <button class="btn-notif-later" onclick="dismissNotif()">Để sau</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capacity bar -->
+  <div id="cap-bar">
+    <div class="cap-row">
+      <div>
+        <div class="cap-label">WEEKLY CAPACITY</div>
+        <div style="display:flex;align-items:baseline;gap:5px">
+          <span class="cap-used" id="cap-used">0h</span>
+          <span class="cap-total" id="cap-total">/ 40h</span>
+        </div>
+      </div>
+      <div>
+        <div class="cap-avail-label" id="cap-avail-label">AVAILABLE</div>
+        <div class="cap-avail" id="cap-avail">+40h</div>
+      </div>
+    </div>
+    <div class="cap-track"><div class="cap-fill" id="cap-fill" style="width:0%"></div></div>
+    <div class="cap-msg" id="cap-msg">✓ Bạn có thể nhận thêm task</div>
+  </div>
+
+  <!-- Add form -->
+  <div id="add-form">
+    <div class="form-label">THÊM TASK MỚI</div>
+    <input class="form-input" id="f-title" placeholder="Tên task..." />
+    <div class="form-grid">
+      <select class="form-input" id="f-priority" style="margin:0">
+        <option value="high">🔴 High</option>
+        <option value="med" selected>🟡 Medium</option>
+        <option value="low">🟢 Low</option>
+      </select>
+      <input class="form-input" id="f-hours" type="number" placeholder="Số giờ" style="margin:0" />
+      <select class="form-input" id="f-category" style="margin:0">
+        <option>Design</option><option>Client</option><option>Strategy</option>
+        <option>Admin</option><option>Order</option><option>Other</option>
+      </select>
+      <select class="form-input" id="f-day" style="margin:0">
+        <option value="0">Monday</option><option value="1">Tuesday</option>
+        <option value="2">Wednesday</option><option value="3">Thursday</option>
+        <option value="4">Friday</option><option value="5">Saturday</option>
+        <option value="6">Sunday</option>
+      </select>
+      <input class="form-input form-date" id="f-deadline" type="date" style="margin:0;grid-column:1/-1" />
+    </div>
+    <button class="btn-add-submit" onclick="addTask()">Thêm Task</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-week" onclick="switchTab('week')">📅 Week</button>
+    <button class="tab-btn" id="tab-list" onclick="switchTab('list')">☰ List</button>
+    <button class="tab-btn" id="tab-ai"   onclick="switchTab('ai')">✦ AI</button>
+  </div>
+
+  <!-- Week view -->
+  <div class="tab-content active" id="content-week">
+    <div class="day-row" id="day-row"></div>
+    <div class="day-info" id="day-info"></div>
+    <div class="task-list" id="week-tasks"></div>
+  </div>
+
+  <!-- List view -->
+  <div class="tab-content" id="content-list">
+    <div class="filter-row" id="filter-row"></div>
+    <div class="task-list" id="list-tasks"></div>
+  </div>
+
+  <!-- AI view -->
+  <div class="tab-content" id="content-ai">
+    <div id="ai-content"></div>
+  </div>
+
+  <div class="safe-bottom"></div>
+</div>
+
+<script>
+var CAPACITY = 40;
+var DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+var FULL_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+var PC = {
+  high: { label:'HIGH', color:'#E53935', bg:'#E5393512' },
+  med:  { label:'MED',  color:'#F57C00', bg:'#F57C0012' },
+  low:  { label:'LOW',  color:'#2E7D32', bg:'#2E7D3212' }
+};
+var TODAY_IDX = (function(){ var d = new Date().getDay(); return d === 0 ? 6 : d - 1; })();
+
+// State
+var dark = true;
+var tasks = [];
+var filterDay = TODAY_IDX;
+var filterPri = 'all';
+var showForm = false;
+var notifStatus = 'default';
+var currentTab = 'week';
+
+// Init
+(function init() {
+  var sd = localStorage.getItem('wl-dark');
+  dark = sd !== null ? sd === 'true' : true;
+  if (!dark) document.body.classList.add('light');
+  updateToggle();
+
+  try { tasks = JSON.parse(localStorage.getItem('wl-tasks')) || getSample(); }
+  catch(e) { tasks = getSample(); }
+
+  if (!('Notification' in window)) {
+    notifStatus = 'unsupported';
+  } else if (localStorage.getItem('wl-notif-dismissed')) {
+    notifStatus = 'dismissed';
+  } else {
+    notifStatus = Notification.permission;
+  }
+  updateNotifUI();
+  renderAll();
+})();
+
+function getSample() {
+  return [
+    { id:1, title:'Design jersey artwork - Team Alpha', priority:'high', hours:8, category:'Design', deadline:'2026-04-01', done:false, day:0 },
+    { id:2, title:'Sticker pack illustration x5',       priority:'high', hours:6, category:'Design', deadline:'2026-04-03', done:false, day:1 },
+    { id:3, title:'Brand guidelines document',          priority:'med',  hours:4, category:'Strategy',deadline:'2026-04-07', done:false, day:2 },
+    { id:4, title:'Client feedback - Hoodie mockup',    priority:'med',  hours:2, category:'Client',  deadline:'2026-04-04', done:false, day:1 },
+    { id:5, title:'Vectorize logo assets',              priority:'low',  hours:3, category:'Design',  deadline:'2026-04-10', done:false, day:4 }
+  ];
+}
+
+function save() { localStorage.setItem('wl-tasks', JSON.stringify(tasks)); }
+
+// Dark mode
+function toggleDark() {
+  dark = !dark;
+  document.body.classList.toggle('light', !dark);
+  localStorage.setItem('wl-dark', String(dark));
+  updateToggle();
+  renderAll();
+}
+function updateToggle() {
+  var k = document.getElementById('knob');
+  if (k) { k.textContent = dark ? '☀' : '☾'; }
+}
+
+// Notification
+function updateNotifUI() {
+  var banner = document.getElementById('notif-banner');
+  var btn = document.getElementById('btn-notif');
+  if (notifStatus === 'granted') {
+    if (banner) banner.classList.add('hidden');
+    if (btn) btn.textContent = '🔔';
+  } else if (notifStatus === 'unsupported' || notifStatus === 'dismissed') {
+    if (banner) banner.classList.add('hidden');
+  } else {
+    if (banner) banner.classList.remove('hidden');
+    if (btn) btn.textContent = '🔕';
+  }
+}
+function handleNotif() {
+  if (!('Notification' in window)) return;
+  Notification.requestPermission().then(function(r) {
+    notifStatus = r;
+    updateNotifUI();
+    if (r === 'granted') {
+      sendNotif('Thong bao da bat!', 'Ban se nhan canh bao deadline & workload tu gio.');
+      checkNotifs();
+    }
+  });
+}
+function dismissNotif() {
+  localStorage.setItem('wl-notif-dismissed', '1');
+  notifStatus = 'dismissed';
+  updateNotifUI();
+}
+function sendNotif(title, body) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try { new Notification(title, { body: body, icon: '/icon-192.png' }); } catch(e) {}
+}
+function checkNotifs() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  var today = new Date(); today.setHours(0,0,0,0);
+  var used = tasks.filter(function(t){ return !t.done; }).reduce(function(s,t){ return s+t.hours; }, 0);
+  var pct = (used/CAPACITY)*100;
+  var todayStr = new Date().toDateString();
+
+  tasks.filter(function(t){ return !t.done && t.deadline; }).forEach(function(t) {
+    var dl = new Date(t.deadline);
+    var diff = Math.round((dl-today)/86400000);
+    var key = 'wl-n-'+t.id+'-'+diff;
+    if (localStorage.getItem(key)) return;
+    if (diff < 0)    { sendNotif('Task qua han!', t.title+' da qua deadline '+Math.abs(diff)+' ngay.'); localStorage.setItem(key,'1'); }
+    else if (diff===0){ sendNotif('Deadline hom nay!', t.title+' can hoan thanh ngay hom nay.'); localStorage.setItem(key,'1'); }
+    else if (diff===1){ sendNotif('Deadline ngay mai', t.title+' con 1 ngay - dung de tre!'); localStorage.setItem(key,'1'); }
+    else if (diff===3){ sendNotif('Nhac nho deadline', t.title+' con 3 ngay nua den han.'); localStorage.setItem(key,'1'); }
+  });
+  if (pct>=100 && localStorage.getItem('wl-cap-100')!==todayStr) {
+    sendNotif('Workload tran!', 'Da vuot '+used+'h/'+CAPACITY+'h. Dung nhan them task moi.');
+    localStorage.setItem('wl-cap-100', todayStr);
+  } else if (pct>=80 && pct<100 && localStorage.getItem('wl-cap-80')!==todayStr) {
+    sendNotif('Workload gan day', 'Da dung '+used+'h/'+CAPACITY+'h. Can nhac truoc khi nhan them.');
+    localStorage.setItem('wl-cap-80', todayStr);
+  }
+}
+
+// Capacity bar
+function renderCap() {
+  var used = tasks.filter(function(t){ return !t.done; }).reduce(function(s,t){ return s+t.hours; }, 0);
+  var pct  = Math.min((used/CAPACITY)*100, 100);
+  var col  = pct>85 ? '#E53935' : pct>60 ? '#F57C00' : '#2E7D32';
+  var free = CAPACITY-used;
+  document.getElementById('cap-used').textContent  = used+'h';
+  document.getElementById('cap-avail-label').textContent = free>0 ? 'AVAILABLE' : 'OVERLOADED';
+  document.getElementById('cap-avail').textContent = free>0 ? '+'+free+'h' : Math.abs(free)+'h over';
+  document.getElementById('cap-avail').style.color = col;
+  document.getElementById('cap-fill').style.width  = pct+'%';
+  document.getElementById('cap-fill').style.background = col;
+  document.getElementById('cap-msg').style.color   = col;
+  document.getElementById('cap-msg').textContent   = pct<60 ? '✓ Ban co the nhan them task' : pct<85 ? '⚡ Dang ban — can nhac ky truoc khi nhan' : '🔴 Da day — hoan thanh truoc khi nhan them';
+}
+
+// Form
+function toggleForm() {
+  showForm = !showForm;
+  document.getElementById('add-form').className = showForm ? 'show' : '';
+  document.getElementById('btn-add').textContent = showForm ? '✕' : '+ Add';
+  document.getElementById('btn-add').className = showForm ? 'btn btn-primary' : 'btn';
+}
+function addTask() {
+  var title = document.getElementById('f-title').value.trim();
+  var hours = parseFloat(document.getElementById('f-hours').value);
+  if (!title || !hours) return;
+  tasks.push({
+    id: Date.now(),
+    title: title,
+    priority: document.getElementById('f-priority').value,
+    hours: hours,
+    category: document.getElementById('f-category').value,
+    deadline: document.getElementById('f-deadline').value,
+    day: parseInt(document.getElementById('f-day').value),
+    done: false
+  });
+  save();
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-hours').value = '';
+  document.getElementById('f-deadline').value = '';
+  document.getElementById('f-priority').value = 'med';
+  toggleForm();
+  checkNotifs();
+  renderAll();
+}
+
+// Tab switching
+function switchTab(tab) {
+  currentTab = tab;
+  ['week','list','ai'].forEach(function(t) {
+    document.getElementById('tab-'+t).className = 'tab-btn' + (t===tab?' active':'');
+    document.getElementById('content-'+t).className = 'tab-content' + (t===tab?' active':'');
+  });
+  if (tab === 'ai') runAI();
+}
+
+// Deadline label
+function dlLabel(task) {
+  if (!task.deadline || task.done) return null;
+  var today = new Date(); today.setHours(0,0,0,0);
+  var diff = Math.round((new Date(task.deadline)-today)/86400000);
+  if (diff < 0)   return { text:'Qua han '+Math.abs(diff)+'ng', color:'#E53935' };
+  if (diff === 0) return { text:'Hom nay!',  color:'#E53935' };
+  if (diff === 1) return { text:'Ngay mai',  color:'#F57C00' };
+  if (diff <= 3)  return { text:'Con '+diff+' ngay', color:'#F57C00' };
+  return { text:'📅 '+task.deadline, color: dark ? '#444' : '#AAA' };
+}
+
+// Build task HTML
+function taskHTML(task) {
+  var pc = PC[task.priority];
+  var dl = dlLabel(task);
+  var isOver = dl && dl.color === '#E53935';
+  var dlHTML = dl ? '<span class="dl-tag" style="color:'+dl.color+'">'+dl.text+'</span>' : '';
+  return '<div class="task-row'+(task.done?' done':'')+(isOver?' overdue':'')+'" id="tr-'+task.id+'">' +
+    '<div class="check'+(task.done?' checked':'')+'" style="--pc:'+pc.color+'" onclick="toggleDone('+task.id+')"></div>' +
+    '<div class="task-body">' +
+      '<div class="task-title">'+escHtml(task.title)+'</div>' +
+      '<div class="task-meta">' +
+        '<span class="badge" style="color:'+pc.color+';background:'+pc.bg+';border:1px solid '+pc.color+'25">'+pc.label+'</span>' +
+        '<span class="meta-tag">'+escHtml(task.category)+'</span>' +
+        '<span class="meta-dim">⏱ '+task.hours+'h</span>' +
+        '<span class="meta-dim">'+DAYS[task.day]+'</span>' +
+        dlHTML +
+      '</div>' +
+    '</div>' +
+    '<button class="task-del" onclick="deleteTask('+task.id+')">✕</button>' +
+  '</div>';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleDone(id) {
+  tasks = tasks.map(function(t){ return t.id===id ? Object.assign({},t,{done:!t.done}) : t; });
+  save(); renderAll();
+}
+function deleteTask(id) {
+  tasks = tasks.filter(function(t){ return t.id!==id; });
+  save(); renderAll();
+}
+
+// Render week view
+function renderWeek() {
+  var dayHours = DAYS.map(function(_,i){
+    return tasks.filter(function(t){ return t.day===i&&!t.done; }).reduce(function(s,t){ return s+t.hours; },0);
+  });
+
+  var dayRowHTML = '';
+  DAYS.forEach(function(d,i) {
+    var h = dayHours[i];
+    var active = i===filterDay;
+    var isToday = i===TODAY_IDX;
+    var cls = 'day-btn'+(active?' active':'')+(isToday&&!active?' today':'');
+    var nameColor = active ? (dark?'#0E0E0E':'#fff') : isToday ? '#888' : (dark?'#444':'#AAA');
+    var hoursColor = active ? (dark?'#0E0E0E':'#fff') : h>8 ? '#E53935' : (dark?'#F0F0F0':'#111');
+    dayRowHTML += '<button class="'+cls+'" onclick="selectDay('+i+')">' +
+      '<span class="day-name" style="color:'+nameColor+'">'+d+'</span>' +
+      '<span class="day-hours" style="color:'+hoursColor+'">'+h+'h</span>' +
+      (isToday&&!active ? '<div class="day-dot"></div>' : '') +
+    '</button>';
+  });
+  document.getElementById('day-row').innerHTML = dayRowHTML;
+
+  var dayTasks = tasks.filter(function(t){ return t.day===filterDay; }).sort(sortFn);
+  document.getElementById('day-info').textContent =
+    FULL_DAYS[filterDay].toUpperCase()+' — '+dayTasks.filter(function(t){ return !t.done; }).length+' tasks · '+dayHours[filterDay]+'h';
+
+  var html = dayTasks.length===0 ? '<div class="task-empty">Chua co task nao</div>' : dayTasks.map(taskHTML).join('');
+  document.getElementById('week-tasks').innerHTML = html;
+}
+
+function selectDay(i) { filterDay=i; renderWeek(); }
+
+// Render list view
+function renderList() {
+  var filters = [
+    {key:'all', label:'ALL'},
+    {key:'high', label:'HIGH'},
+    {key:'med',  label:'MED'},
+    {key:'low',  label:'LOW'}
+  ];
+  var filterHTML = filters.map(function(f) {
+    var count = f.key==='all' ? tasks.filter(function(t){return !t.done;}).length : tasks.filter(function(t){return t.priority===f.key&&!t.done;}).length;
+    var cls = 'filter-btn'+(filterPri===f.key ? (f.key==='all'?' active-all':' active-'+f.key) : '');
+    return '<button class="'+cls+'" onclick="setFilter(\''+f.key+'\')">'+f.label+' <span style="opacity:0.5">'+count+'</span></button>';
+  }).join('');
+  document.getElementById('filter-row').innerHTML = filterHTML;
+
+  var sorted = tasks.slice().filter(function(t){ return filterPri==='all'||t.priority===filterPri; }).sort(sortFn);
+  document.getElementById('list-tasks').innerHTML = sorted.length===0 ? '<div class="task-empty">Khong co task</div>' : sorted.map(taskHTML).join('');
+}
+
+function setFilter(p) { filterPri=p; renderList(); }
+
+function sortFn(a,b) {
+  var ord={high:0,med:1,low:2};
+  if (a.done!==b.done) return a.done?1:-1;
+  return ord[a.priority]-ord[b.priority];
+}
+
+// Render all
+function renderAll() {
+  renderCap();
+  renderWeek();
+  renderList();
+}
+
+// Export CSV
+function exportCSV() {
+  var rows = [['Title','Priority','Hours','Category','Deadline','Day','Done']];
+  tasks.forEach(function(t){ rows.push(['"'+t.title+'"',t.priority,t.hours,t.category,t.deadline||'',FULL_DAYS[t.day]||'',t.done?'Yes':'No']); });
+  var blob = new Blob([rows.map(function(r){return r.join(',');}).join('\n')],{type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'workload.csv';
+  a.click();
+}
+
+// AI
+function runAI() {
+  var el = document.getElementById('ai-content');
+  el.innerHTML = '<div class="ai-loading"><div class="star">✦</div><div class="msg">DANG PHAN TICH TASK...</div></div>';
+  var active = tasks.filter(function(t){ return !t.done; });
+  var used   = active.reduce(function(s,t){ return s+t.hours; },0);
+  var prompt = 'Ban la productivity coach. Phan tich cac task sau va dua ra thu tu uu tien.\n'+
+    'Tasks: '+JSON.stringify(active.map(function(t){ return {title:t.title,priority:t.priority,hours:t.hours,category:t.category,deadline:t.deadline||'khong co deadline',day:FULL_DAYS[t.day]}; }))+'\n'+
+    'Capacity: '+used+'/'+CAPACITY+'h da dung. Hom nay: '+FULL_DAYS[TODAY_IDX]+'.\n'+
+    'Tra loi HOAN TOAN bang tieng Viet, CHI JSON (khong markdown):\n'+
+    '{"topTask":"ten task","topReason":"ly do ngan gon","orderedList":[{"rank":1,"title":"...","reason":"ly do cu the tai sao lam truoc","urgency":"high|med|low"}],"capacityAdvice":"nhan xet workload","focusTip":"tip cho hom nay"}';
+
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    var text = data.content.map(function(b){ return b.text||''; }).join('');
+    var ai = JSON.parse(text.replace(/```json|```/g,'').trim());
+    var html = '<div class="ai-card">' +
+      '<div class="ai-top-label">✦ LAM TRUOC TIEN</div>' +
+      '<div class="ai-top-title">'+escHtml(ai.topTask)+'</div>' +
+      '<div class="ai-top-reason">'+escHtml(ai.topReason)+'</div></div>';
+    html += '<div class="ai-section-label" style="color:'+(dark?'#444':'#AAA')+'">THU TU UU TIEN</div>';
+    ai.orderedList.forEach(function(item){
+      var col = item.urgency==='high'?'#E53935':item.urgency==='med'?'#F57C00':'#2E7D32';
+      html += '<div class="ai-item"><div class="ai-item-rank">'+item.rank+'</div><div style="flex:1"><div class="ai-item-title">'+escHtml(item.title)+'</div><div class="ai-item-reason">'+escHtml(item.reason)+'</div></div><div class="ai-item-urgency" style="color:'+col+'">'+item.urgency.toUpperCase()+'</div></div>';
+    });
+    [{label:'CAPACITY',value:ai.capacityAdvice,color:'#2E7D32'},{label:'TIP HOM NAY',value:ai.focusTip,color:'#F57C00'}].forEach(function(a){
+      html += '<div class="ai-advice"><div class="ai-advice-label" style="color:'+a.color+'">'+a.label+'</div><div class="ai-advice-text">'+escHtml(a.value)+'</div></div>';
+    });
+    html += '<button class="btn-ai-refresh" onclick="runAI()">↻ Phan tich lai</button>';
+    el.innerHTML = html;
+  })
+  .catch(function(){
+    el.innerHTML = '<div class="ai-error">Khong the tai goi y AI. Vui long thu lai.</div><button class="btn-ai-refresh" onclick="runAI()" style="margin-top:12px">↻ Thu lai</button>';
+  });
+}
+
+// Service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function(){});
+  });
+}
+
+// Check notifs on load
+setTimeout(checkNotifs, 2000);
+</script>
+</body>
+</html>
