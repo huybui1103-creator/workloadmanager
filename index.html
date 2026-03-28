@@ -409,38 +409,38 @@ var calSelectedDay = null;
 var assignTaskId = null;
 
 // History
-var history = [];
-var historyIdx = -1;
+var taskHistory = [];
+var taskHistoryIdx = -1;
 var MAX_HIST = 20;
 
 function pushHistory(label) {
-  history = history.slice(0, historyIdx+1);
-  history.push({ snap: JSON.stringify(tasks), label: label||'thao tác' });
-  if (history.length > MAX_HIST) history.shift();
-  historyIdx = history.length-1;
+  taskHistory = taskHistory.slice(0, taskHistoryIdx+1);
+  taskHistory.push({ snap: JSON.stringify(tasks), label: label||'thao tác' });
+  if (taskHistory.length > MAX_HIST) taskHistory.shift();
+  taskHistoryIdx = taskHistory.length-1;
   updateUndoUI();
 }
 function undo() {
-  if (historyIdx <= 0) return;
-  historyIdx--;
-  tasks = JSON.parse(history[historyIdx].snap);
+  if (taskHistoryIdx <= 0) return;
+  taskHistoryIdx--;
+  tasks = JSON.parse(taskHistory[taskHistoryIdx].snap);
   save(); renderAll(); updateUndoUI();
 }
 function redo() {
-  if (historyIdx >= history.length-1) return;
-  historyIdx++;
-  tasks = JSON.parse(history[historyIdx].snap);
+  if (taskHistoryIdx >= taskHistory.length-1) return;
+  taskHistoryIdx++;
+  tasks = JSON.parse(taskHistory[taskHistoryIdx].snap);
   save(); renderAll(); updateUndoUI();
 }
 function updateUndoUI() {
   var bu = document.getElementById('btn-undo');
   var br = document.getElementById('btn-redo');
   var bh = document.getElementById('bar-hint');
-  if (bu) bu.disabled = historyIdx <= 0;
-  if (br) br.disabled = historyIdx >= history.length-1;
+  if (bu) bu.disabled = taskHistoryIdx <= 0;
+  if (br) br.disabled = taskHistoryIdx >= taskHistory.length-1;
   if (bh) {
-    if (historyIdx > 0 && history[historyIdx]) {
-      bh.textContent = history[historyIdx].label;
+    if (taskHistoryIdx > 0 && taskHistory[taskHistoryIdx]) {
+      bh.textContent = taskHistory[taskHistoryIdx].label;
     } else {
       bh.textContent = '–';
     }
@@ -458,8 +458,8 @@ function updateUndoUI() {
   else if (localStorage.getItem('wl-notif-dismissed')) { notifStatus = 'dismissed'; }
   else { notifStatus = Notification.permission; }
   updateNotifUI();
-  history = [{ snap: JSON.stringify(tasks), label: 'trạng thái ban đầu' }];
-  historyIdx = 0;
+  taskHistory = [{ snap: JSON.stringify(tasks), label: 'trạng thái ban đầu' }];
+  taskHistoryIdx = 0;
   renderAll();
   updateUndoUI();
 })();
